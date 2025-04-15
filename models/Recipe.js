@@ -11,7 +11,21 @@ const recipeSchema = new mongoose.Schema({
   image: String,
   video: String,
   steps: String,
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  userId:String,
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  ratings: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      value: Number,
+    }
+  ],
+  comments: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      username: String,
+      text: String,
+    }
+  ]
 });
 
 module.exports = mongoose.model('Recipe', recipeSchema);

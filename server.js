@@ -10,11 +10,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://yuvaraj11:Yuvaraj%4011@myrecipes.pl9bt6f.mongodb.net/myrecipes?retryWrites=true&w=majority')
+mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://yuvaraj11:Yuvaraj%4011@myrecipes.pl9bt6f.mongodb.net/myrecipes?retryWrites=true&w=majority', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
-
-  mongoose.set('bufferCommands', false);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
