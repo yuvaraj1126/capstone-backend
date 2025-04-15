@@ -1,0 +1,11 @@
+
+services:
+  - type: web
+    name: recipe-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGO_URI
+        value: <your-mongodb-uri-here>
