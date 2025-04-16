@@ -24,6 +24,7 @@ const recipeSchema = new mongoose.Schema({
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       username: String,
       text: String,
+      rating: Number,
     }
   ]
 });

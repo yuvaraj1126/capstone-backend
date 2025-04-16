@@ -26,7 +26,17 @@ router.post('/', auth, async (req, res) => {
 router.get('/', auth, async (_req, res) => {
   try {
     const recipes = await Recipe.find();
-    res.json(recipes);
+    let newRecipes = recipes.map((d)=>{
+      const totalRatings = d.ratings.length;
+
+      const averageRating = totalRatings
+        ? (d.ratings.reduce((acc, r) => acc + r.value, 0) / totalRatings).toFixed(1)
+        : 0;
+        return {...d._doc,averageRating }
+    })
+    console.log("cghvc",newRecipes)
+    
+    res.status(200).json(newRecipes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -147,13 +157,13 @@ router.post('/rate', auth, async (req, res) => {
     await recipe.save();
 
     // Optional: calculate average rating
-    // const total = recipe.ratings.reduce((sum, r) => sum + r.value, 0);
-    // const avgRating = total / recipe.ratings.length;
+    const total = recipe.ratings.reduce((sum, r) => sum + r.value, 0);
+    const avgRating = total / recipe.ratings.length;
 
     res.status(200).json({
       message: 'Rating submitted successfully',
-      // averageRating: avgRating.toFixed(1),
-      // totalRatings: recipe.ratings.length
+      averageRating: avgRating.toFixed(1),
+      totalRatings: recipe.ratings.length
     });
   } catch (err) {
     console.error(err);
@@ -162,8 +172,26 @@ router.post('/rate', auth, async (req, res) => {
 });
 
 // Comment on a recipe
+// router.post('/comment', auth, async (req, res) => {
+//   const { text,rating, userId,id } = req.body;
+//   if (!text) return res.status(400).json({ error: 'Comment text is required' });
+
+//   try {
+//     const user = await User.findById(userId);
+//     const recipe = await Recipe.findById(id);
+//     if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
+
+//     recipe.comments.push({ user: user._id, text, username: user.username, rating });
+//     await recipe.save();
+
+//     res.status(200).json({ message: 'Comment added' });
+//   } catch (err) {
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
 router.post('/comment', auth, async (req, res) => {
-  const { text, userId,id } = req.body;
+  const { text, rating, userId, id } = req.body;
+
   if (!text) return res.status(400).json({ error: 'Comment text is required' });
 
   try {
@@ -171,46 +199,53 @@ router.post('/comment', auth, async (req, res) => {
     const recipe = await Recipe.findById(id);
     if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
 
-    recipe.comments.push({ user: user._id, text, username: user.username });
-    await recipe.save();
+    recipe.comments.push({
+      user: user._id,
+      username: user.username,
+      text,
+      rating: Number(rating) || 0, // Ensure it's a number
+    });
 
+    await recipe.save();
     res.status(200).json({ message: 'Comment added' });
   } catch (err) {
+    console.error("Add comment error:", err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 
 
-router.post('/comment', auth, async (req, res) => {
-  const { text } = req.body;
-  const { id } = req.params;
 
-  if (!text) return res.status(400).json({ error: 'Updated comment text is required' });
+// router.post('/comment', auth, async (req, res) => {
+//   const { text,rating } = req.body;
+//   const { id } = req.params;
 
-  try {
-    // Find the recipe that contains the comment
-    const recipe = await Recipe.findOne({ 'comments.user': id });
-    if (!recipe) return res.status(404).json({ error: 'Comment not found' });
+//   if (!text) return res.status(400).json({ error: 'Updated comment text is required' });
 
-    // Find the comment inside the recipe
-    const comment = recipe.comments.id(id);
+//   try {
+//     // Find the recipe that contains the comment
+//     const recipe = await Recipe.findOne({ 'comments.user': id });
+//     if (!recipe) return res.status(404).json({ error: 'Comment not found' });
 
-    // Optional: check if current user is the owner of the comment
-    if (comment.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Not authorized to edit this comment' });
-    }
+//     // Find the comment inside the recipe
+//     const comment = recipe.comments.id(id);
 
-    // Update comment text
-    comment.text = text;
-    await recipe.save();
+//     // Optional: check if current user is the owner of the comment
+//     if (comment.user.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ error: 'Not authorized to edit this comment' });
+//     }
 
-    res.status(200).json({ message: 'Comment updated successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error while updating comment' });
-  }
-});
+//     // Update comment text
+//     comment.text = text;
+//     await recipe.save();
+
+//     res.status(200).json({ message: 'Comment updated successfully' });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: 'Server error while updating comment' });
+//   }
+// });
 
 // Get recipe reviews (average rating + comments)
 router.post('/reviews', async (req, res) => {
@@ -227,6 +262,8 @@ router.post('/reviews', async (req, res) => {
     const comments = recipe.comments.map(c => ({
       text: c.text,
       user: { username: c.username },
+      rating:c.rating
+      ,
     }));
 
     res.status(200).json({ averageRating, comments });
